@@ -39,28 +39,34 @@ async function generateInvoice(data) {
             height: 50
         });
 
-        page.drawText("Tax Invoice/Bill of Supply/Cash Memo", { x: 180, y: height - 40, size: 14 });
-        page.drawText("(Original for Recipient)", { x: 180, y: height - 55, size: 10 });
+        // Seller details on left side
+        page.drawText("Sold By:", { x: 40, y: height - 120, size: fontSize });
+        drawMultilineText(page, formatSellerDetails(sellerDetails), 40, height - 130, fontSize);
 
-        page.drawText("Sold By:", { x: 40, y: height - 100, size: fontSize });
-        drawMultilineText(page, formatSellerDetails(sellerDetails), 40, height - 110, fontSize);
+        // Order details on left side
+        drawMultilineText(page, formatOrderDetails(orderDetails), 40, height - 270, fontSize);
 
-        drawMultilineText(page, formatOrderDetails(orderDetails), 320, height - 100, fontSize);
-        drawMultilineText(page, formatInvoiceDetails(invoiceDetails), 320, height - 140, fontSize);
+        // Tax Invoice details on right side
+        page.drawText("Tax Invoice/Bill of Supply/Cash Memo", { x: 320, y: height - 50, size: 14 });
+        page.drawText("(Original for Recipient)", { x: 320, y: height - 65, size: 10 });
 
-        page.drawText("Billing Address:", { x: 40, y: height - 180, size: fontSize });
-        drawMultilineText(page, formatBillingDetails(billingDetails), 40, height - 190, fontSize);
+        // Billing details on right side
+        page.drawText("Billing Address:", { x: 320, y: height - 115, size: fontSize });
+        drawMultilineText(page, formatBillingDetails(billingDetails), 320, height - 125, fontSize);
 
-        page.drawText("Shipping Address:", { x: 320, y: height - 180, size: fontSize });
-        drawMultilineText(page, formatShippingDetails(shippingDetails), 320, height - 190, fontSize);
+        // Shipping details on right side
+        page.drawText("Shipping Address:", { x: 320, y: height - 185, size: fontSize });
+        drawMultilineText(page, formatShippingDetails(shippingDetails), 320, height - 195, fontSize);
 
-        drawTableHeaders(page, height - 250, fontSize);
-        drawTableContent(page, height - 270, fontSize, items, billingDetails.state, shippingDetails.state);
-        drawTotals(page, height - (270 + 20 * items.length), fontSize, items, billingDetails, shippingDetails);
+        // Invoice details on right side
+        drawMultilineText(page, formatInvoiceDetails(invoiceDetails), 320, height - 255, fontSize);
 
-        page.drawText(`For ${sellerDetails.name}:`, { x: 40, y: 70, size: fontSize });
-        page.drawImage(signatureImage, { x: 40, y: 30, width: 100, height: 30 });
-        page.drawText("Authorized Signatory", { x: 40, y: 20, size: fontSize });
+        // Table headers and content
+        drawTableHeaders(page, height - 320, fontSize);
+        drawTableContent(page, height - 340, fontSize, items, billingDetails.state, shippingDetails.state);
+
+        // Totals and amount in words
+        drawTotals(page, height - (340 + 20 * items.length), fontSize, items, billingDetails, shippingDetails, sellerDetails, signatureImage);
 
         const pdfBytes = await pdfDoc.save();
         return pdfBytes;
@@ -114,7 +120,7 @@ function drawTableContent(page, y, fontSize, items, billingState, shippingState)
     });
 }
 
-function drawTotals(page, y, fontSize, items, billingDetails, shippingDetails) {
+function drawTotals(page, y, fontSize, items, billingDetails, shippingDetails, sellerDetails, signatureImage) {
     const totalNetAmount = items.reduce((sum, item) => sum + calculateNetAmount(item.unitPrice, item.quantity, item.discount), 0);
     const totalTaxAmount = items.reduce((sum, item) => {
         const netAmount = calculateNetAmount(item.unitPrice, item.quantity, item.discount);
@@ -123,10 +129,16 @@ function drawTotals(page, y, fontSize, items, billingDetails, shippingDetails) {
     }, 0);
     const totalAmount = totalNetAmount + totalTaxAmount;
 
-    page.drawText(`Total Net Amount: ${totalNetAmount.toFixed(2)}`, { x: 40, y: y - 20, size: fontSize });
-    page.drawText(`Total Tax Amount: ${totalTaxAmount.toFixed(2)}`, { x: 40, y: y - 40, size: fontSize });
-    page.drawText(`Total Amount: ${totalAmount.toFixed(2)}`, { x: 40, y: y - 60, size: fontSize });
-    page.drawText(`Amount in Words: ${amountInWords(totalAmount)}`, { x: 40, y: y - 80, size: fontSize });
+    const totalStartY = y - 20;
+    const wordsStartY = totalStartY - 20;
+    const forStartY = wordsStartY - 40;
+
+    page.drawText(`Total Net Amount: ${totalNetAmount.toFixed(2)}`, { x: 40, y: totalStartY, size: fontSize });
+    page.drawText(`Amount in Words: ${amountInWords(totalAmount)}`, { x: 40, y: wordsStartY, size: fontSize });
+
+    page.drawText(`For ${sellerDetails.name}:`, { x: 420, y: forStartY, size: fontSize });
+    page.drawImage(signatureImage, { x: 420, y: forStartY - 30, width: 100, height: 30 });
+    page.drawText("Authorized Signatory", { x: 420, y: forStartY - 40, size: fontSize });
 }
 
 function formatSellerDetails(details) {
