@@ -18,9 +18,9 @@ async function generateInvoice(data) {
         console.log("Request Data:", data);
 
         const pdfDoc = await PDFDocument.create();
-        const page = pdfDoc.addPage([595, 835]);
+        const page = pdfDoc.addPage([735, 895]);
         const { width, height } = page.getSize();
-        const fontSize = 10;
+        const fontSize = 8;
 
         const logoPath = path.resolve(__dirname, '../static/logo.png');
         if (!fs.existsSync(logoPath)) throw new Error('Logo image not found');
@@ -87,8 +87,8 @@ function drawMultilineText(page, text, x, y, fontSize) {
 }
 
 function drawTableHeaders(page, y, fontSize) {
-    const headers = ["Sl. No", "Description", "Unit Price", "Qty", "Net Amount", "Tax Rate", "Tax Type", "Tax Amount", "Total Amount"];
-    const xPositions = [40, 80, 180, 260, 310, 370, 420, 480, 530];
+    const headers = ["Sl.No", "Description", "Unit Price", "Qty", "Net Amount", "Tax Rate", "Tax Type", "Tax Amount", "Total Amount"];
+    const xPositions = [40, 65, 395, 435, 455, 505, 545, 605, 655];
 
     headers.forEach((header, index) => {
         page.drawText(header, { x: xPositions[index], y, size: fontSize });
@@ -115,7 +115,7 @@ function drawTableContent(page, y, fontSize, items, billingState, shippingState)
             totalAmount.toFixed(2)
         ];
 
-        const xPositions = [40, 80, 180, 260, 310, 370, 420, 480, 530];
+        const xPositions = [40, 65, 395, 435, 455, 505, 545, 605, 655];
         values.forEach((value, index) => {
             page.drawText(value.toString(), { x: xPositions[index], y: y - (idx * 20), size: fontSize });
         });
@@ -155,9 +155,9 @@ function drawTotals(page, y, fontSize, items, billingDetails, shippingDetails, s
     page.drawText(`Total Net Amount: ${totalNetAmount.toFixed(2)}`, { x: 40, y: totalStartY, size: fontSize });
     page.drawText(`Amount in Words: ${amountInWords(roundedTotalAmount)}`, { x: 40, y: wordsStartY, size: fontSize });
 
-    page.drawText(`For ${sellerDetails.name}:`, { x: 420, y: forStartY, size: fontSize });
-    page.drawImage(signatureImage, { x: 420, y: forStartY - 30, width: 100, height: 30 });
-    page.drawText("Authorized Signatory", { x: 420, y: forStartY - 40, size: fontSize });
+    page.drawText(`For ${sellerDetails.name}:`, { x: 550, y: forStartY, size: fontSize });
+    page.drawImage(signatureImage, { x: 550, y: forStartY - 30, width: 100, height: 30 });
+    page.drawText("Authorized Signatory", { x: 550, y: forStartY - 40, size: fontSize });
 }
 
 
