@@ -1,25 +1,23 @@
-const numberToWords = require('number-to-words');
+const { toWords } = require('number-to-words');
 
-function amountInWords(amount) {
-    return numberToWords.toWords(amount);
-}
-
-function calculateNetAmount(unitPrice, quantity, discount) {
-    return (unitPrice * quantity) - discount;
+function calculateNetAmount(unitPrice, quantity, discount = 0) {
+    return unitPrice * quantity - discount;
 }
 
 function calculateTaxAmount(netAmount, billingState, shippingState) {
-    const TAX_RATE = 0.18;
-    const CGST_SGST_RATE = 0.09;
-
+    // Assuming CGST and SGST are each 9% if billing and shipping states are the same, otherwise 18% IGST
     if (billingState === shippingState) {
-        const cgst = netAmount * CGST_SGST_RATE;
-        const sgst = netAmount * CGST_SGST_RATE;
+        const cgst = netAmount * 0.09;
+        const sgst = netAmount * 0.09;
         return [cgst, sgst];
     } else {
-        const igst = netAmount * TAX_RATE;
+        const igst = netAmount * 0.18;
         return [0, igst];
     }
 }
 
-module.exports = { amountInWords, calculateNetAmount, calculateTaxAmount };
+function amountInWords(amount) {
+    return toWords(amount) + ' only';
+}
+
+module.exports = { calculateNetAmount, calculateTaxAmount, amountInWords };

@@ -97,7 +97,7 @@ function drawTableHeaders(page, y, fontSize) {
 
 function drawTableContent(page, y, fontSize, items, billingState, shippingState) {
     items.forEach((item, idx) => {
-        const netAmount = calculateNetAmount(item.unitPrice, item.quantity, item.discount);
+        const netAmount = calculateNetAmount(item.unitPrice, item.quantity);
         const [cgst, sgst] = calculateTaxAmount(netAmount, billingState, shippingState);
         const taxType = cgst ? "CGST + SGST" : "IGST";
         const taxAmount = cgst + sgst;
@@ -124,25 +124,18 @@ function drawTableContent(page, y, fontSize, items, billingState, shippingState)
 
 function drawTotals(page, y, fontSize, items, billingDetails, shippingDetails, sellerDetails, signatureImage) {
     const totalNetAmount = items.reduce((sum, item) => {
-        const netAmount = calculateNetAmount(item.unitPrice, item.quantity, item.discount);
-        console.log(`Item netAmount: ${netAmount}`);
+        const netAmount = calculateNetAmount(item.unitPrice, item.quantity);
         return sum + netAmount;
     }, 0);
 
     const totalTaxAmount = items.reduce((sum, item) => {
-        const netAmount = calculateNetAmount(item.unitPrice, item.quantity, item.discount);
+        const netAmount = calculateNetAmount(item.unitPrice, item.quantity);
         const [cgst, sgst] = calculateTaxAmount(netAmount, billingDetails.state, shippingDetails.state);
-        console.log(`Item taxAmount (CGST+SGST): ${cgst + sgst}`);
         return sum + cgst + sgst;
     }, 0);
 
     const totalAmount = totalNetAmount + totalTaxAmount;
     const roundedTotalAmount = Math.round(totalAmount * 100) / 100;
-
-    console.log(`Total Net Amount: ${totalNetAmount}`);
-    console.log(`Total Tax Amount: ${totalTaxAmount}`);
-    console.log(`Total Amount: ${totalAmount}`);
-    console.log(`Rounded Total Amount: ${roundedTotalAmount}`);
 
     if (!isFinite(roundedTotalAmount)) {
         throw new Error(`Calculated totalAmount is not a finite number: ${roundedTotalAmount}`);
@@ -152,15 +145,15 @@ function drawTotals(page, y, fontSize, items, billingDetails, shippingDetails, s
     const wordsStartY = totalStartY - 20;
     const forStartY = wordsStartY - 40;
 
-    page.drawText(`Total Net Amount: ${totalNetAmount.toFixed(2)}`, { x: 40, y: totalStartY, size: fontSize });
+    
+    page.drawText(`Total Amount: ${roundedTotalAmount.toFixed(2)}`, { x: 40, y: totalStartY - 10, size: fontSize });
     page.drawText(`Amount in Words: ${amountInWords(roundedTotalAmount)}`, { x: 40, y: wordsStartY, size: fontSize });
+    
 
     page.drawText(`For ${sellerDetails.name}:`, { x: 550, y: forStartY, size: fontSize });
     page.drawImage(signatureImage, { x: 550, y: forStartY - 30, width: 100, height: 30 });
     page.drawText("Authorized Signatory", { x: 550, y: forStartY - 40, size: fontSize });
 }
-
-
 
 function formatSellerDetails(details) {
     return `${details.name}\n${details.address}\n${details.city}, ${details.state}, ${details.pincode}\nPAN No: ${details.panNo}\nGST Registration No: ${details.gstNo}`;
