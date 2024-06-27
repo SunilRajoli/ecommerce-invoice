@@ -18,7 +18,7 @@ async function generateInvoice(data) {
         console.log("Request Data:", data);
 
         const pdfDoc = await PDFDocument.create();
-        const page = pdfDoc.addPage([595, 842]);
+        const page = pdfDoc.addPage([595, 835]);
         const { width, height } = page.getSize();
         const fontSize = 10;
 
@@ -87,9 +87,11 @@ function drawMultilineText(page, text, x, y, fontSize) {
 }
 
 function drawTableHeaders(page, y, fontSize) {
-    const headers = ["Sl. No", "Description", "Unit Price", "Qty", "Discount", "Net Amount", "Tax Rate", "Tax Type", "Tax Amount", "Total Amount"];
+    const headers = ["Sl. No", "Description", "Unit Price", "Qty", "Net Amount", "Tax Rate", "Tax Type", "Tax Amount", "Total Amount"];
+    const xPositions = [40, 80, 180, 260, 310, 370, 420, 480, 530];
+
     headers.forEach((header, index) => {
-        page.drawText(header, { x: 40 + index * 50, y, size: fontSize });
+        page.drawText(header, { x: xPositions[index], y, size: fontSize });
     });
 }
 
@@ -102,11 +104,10 @@ function drawTableContent(page, y, fontSize, items, billingState, shippingState)
         const totalAmount = netAmount + taxAmount;
 
         const values = [
-            idx + 1,
+            (idx + 1).toString(),
             item.description,
             item.unitPrice.toFixed(2),
-            item.quantity,
-            item.discount.toFixed(2),
+            item.quantity.toString(),
             netAmount.toFixed(2),
             `${(cgst ? 9 : 18)}%`,
             taxType,
@@ -114,32 +115,52 @@ function drawTableContent(page, y, fontSize, items, billingState, shippingState)
             totalAmount.toFixed(2)
         ];
 
+        const xPositions = [40, 80, 180, 260, 310, 370, 420, 480, 530];
         values.forEach((value, index) => {
-            page.drawText(value.toString(), { x: 40 + index * 50, y: y - (idx * 20), size: fontSize });
+            page.drawText(value.toString(), { x: xPositions[index], y: y - (idx * 20), size: fontSize });
         });
     });
 }
 
 function drawTotals(page, y, fontSize, items, billingDetails, shippingDetails, sellerDetails, signatureImage) {
-    const totalNetAmount = items.reduce((sum, item) => sum + calculateNetAmount(item.unitPrice, item.quantity, item.discount), 0);
+    const totalNetAmount = items.reduce((sum, item) => {
+        const netAmount = calculateNetAmount(item.unitPrice, item.quantity, item.discount);
+        console.log(`Item netAmount: ${netAmount}`);
+        return sum + netAmount;
+    }, 0);
+
     const totalTaxAmount = items.reduce((sum, item) => {
         const netAmount = calculateNetAmount(item.unitPrice, item.quantity, item.discount);
         const [cgst, sgst] = calculateTaxAmount(netAmount, billingDetails.state, shippingDetails.state);
+        console.log(`Item taxAmount (CGST+SGST): ${cgst + sgst}`);
         return sum + cgst + sgst;
     }, 0);
+
     const totalAmount = totalNetAmount + totalTaxAmount;
+    const roundedTotalAmount = Math.round(totalAmount * 100) / 100;
+
+    console.log(`Total Net Amount: ${totalNetAmount}`);
+    console.log(`Total Tax Amount: ${totalTaxAmount}`);
+    console.log(`Total Amount: ${totalAmount}`);
+    console.log(`Rounded Total Amount: ${roundedTotalAmount}`);
+
+    if (!isFinite(roundedTotalAmount)) {
+        throw new Error(`Calculated totalAmount is not a finite number: ${roundedTotalAmount}`);
+    }
 
     const totalStartY = y - 20;
     const wordsStartY = totalStartY - 20;
     const forStartY = wordsStartY - 40;
 
     page.drawText(`Total Net Amount: ${totalNetAmount.toFixed(2)}`, { x: 40, y: totalStartY, size: fontSize });
-    page.drawText(`Amount in Words: ${amountInWords(totalAmount)}`, { x: 40, y: wordsStartY, size: fontSize });
+    page.drawText(`Amount in Words: ${amountInWords(roundedTotalAmount)}`, { x: 40, y: wordsStartY, size: fontSize });
 
     page.drawText(`For ${sellerDetails.name}:`, { x: 420, y: forStartY, size: fontSize });
     page.drawImage(signatureImage, { x: 420, y: forStartY - 30, width: 100, height: 30 });
     page.drawText("Authorized Signatory", { x: 420, y: forStartY - 40, size: fontSize });
 }
+
+
 
 function formatSellerDetails(details) {
     return `${details.name}\n${details.address}\n${details.city}, ${details.state}, ${details.pincode}\nPAN No: ${details.panNo}\nGST Registration No: ${details.gstNo}`;
